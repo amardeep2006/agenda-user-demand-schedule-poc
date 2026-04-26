@@ -1,4 +1,5 @@
 import { Agenda } from 'agenda';
+import { v7 as uuidv7 } from 'uuid';
 import type { NotificationChannel, Job } from 'agenda';
 import { MongoBackend, MongoChangeStreamNotificationChannel, MongoJobLogger } from '@agendajs/mongo-backend';
 import { MongoClient } from 'mongodb';
@@ -7,7 +8,7 @@ import swaggerUi from 'swagger-ui-express';
 import { swaggerDocument } from './swagger';
 import { createExpressMiddleware } from 'agendash';
 
-const mongoConnectionString = 'mongodb://127.0.0.1:27017/agenda-test?replicaSet=rs0&directConnection=true';
+const mongoConnectionString = process.env.MONGODB_URI || 'mongodb://127.0.0.1:27017/agenda-test?replicaSet=rs0&directConnection=true';
 
 const app = express();
 app.use(express.json());
@@ -27,7 +28,14 @@ app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerDocument));
   const logger = backend.logger as MongoJobLogger;
   await logger.setDb(db);
 
+  // Clear stale locks from previous runs so they are picked up immediately
+  await db.collection('agendaJobs').updateMany(
+    { lockedAt: { $exists: true } },
+    { $unset: { lockedAt: 1, lastRunBy: 1 } }
+  );
+
   const agenda = new Agenda({
+    name: `agenda-${process.env.HOSTNAME || 'local'}`,
     backend: backend,
     notificationChannel: new MongoChangeStreamNotificationChannel({ db }) as unknown as NotificationChannel,
     logging: true
@@ -43,8 +51,15 @@ app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerDocument));
   // This is crucial because if the server restarts, Agenda needs to know how to process the jobs
   // saved in the database. If we use dynamic names, Agenda won't recognize them after a restart.
   agenda.define('dynamic user job', async (job: Job) => {
-    const { jobName, username: jobUser, userprompt: jobPrompt } = job.attrs.data as any;
-    console.log(`[${new Date().toISOString()}] Executing Job: ${jobName} | User: ${jobUser} | Prompt: "${jobPrompt}"`);
+    const { jobName, username: jobUser, userprompt: jobPrompt, jobId } = job.attrs.data as any;
+    const containerId = process.env.HOSTNAME || 'local';
+    
+    console.log(`[${new Date().toISOString()}] [Container: ${containerId}] [JobID: ${jobId}] STARTING Job: ${jobName} | Prompt: "${jobPrompt}"`);
+    
+    // Simulate 2 seconds of work to allow the other replica to pick up other jobs
+    await new Promise(resolve => setTimeout(resolve, 2000));
+    
+    console.log(`[${new Date().toISOString()}] [Container: ${containerId}] [JobID: ${jobId}] COMPLETED Job: ${jobName} | User: ${jobUser} | Prompt: "${jobPrompt}"`);
   });
 
   await agenda.start();
@@ -66,11 +81,12 @@ app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerDocument));
       // We use agenda.create().repeatEvery().save() instead of agenda.every() 
       // because agenda.every() behaves as a singleton and would overwrite the schedule
       // for the existing 'dynamic user job' name.
-      const job = agenda.create('dynamic user job', { jobName, username, userprompt });
+      const jobId = uuidv7();
+      const job = agenda.create('dynamic user job', { jobName, username, userprompt, jobId });
       job.repeatEvery(schedule);
       await job.save();
 
-      res.status(201).json({ message: 'Job successfully created', jobName, schedule });
+      res.status(201).json({ message: 'Job successfully created', jobId, jobName, schedule });
     } catch (error: any) {
       console.error('Error creating job:', error);
       res.status(500).json({ error: 'Internal server error', details: error.message });
@@ -97,6 +113,7 @@ app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerDocument));
         const data = job.data || {};
         return {
           id: job._id,
+          jobId: data.jobId,
           jobName: data.jobName,
           username: data.username,
           userprompt: data.userprompt,

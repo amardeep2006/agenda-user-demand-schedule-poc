@@ -8,9 +8,9 @@ services:
     command: ["--replSet", "rs0", "--bind_ip_all"]
     healthcheck:
       test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
-      interval: 30s
+      interval: 10s
       timeout: 5s
-      retries: 10
+      retries: 5
 
   mongo-init:
     image: mongo:8
@@ -20,4 +20,19 @@ services:
     restart: "no"
     command: >
       mongosh --host mongodb:27017 --eval
-      "rs.initiate({ _id: 'rs0', members: [{ _id: 0, host: 'mongodb:27017' }] })"
+      "try { rs.initiate({ _id: 'rs0', members: [{ _id: 0, host: 'mongodb:27017' }] }) } catch (e) { if (e.message.includes('already initialized')) { console.log('Replica set already initialized'); } else { throw e; } }"
+
+  agenda-poc:
+    build: .
+    depends_on:
+      mongodb:
+        condition: service_healthy
+      mongo-init:
+        condition: service_completed_successfully
+    environment:
+      - MONGODB_URI=mongodb://mongodb:27017/agenda-test?replicaSet=rs0
+      - PORT=3000
+    ports:
+      - "3000-3001:3000"
+    deploy:
+      replicas: 2
