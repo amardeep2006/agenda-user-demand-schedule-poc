@@ -118,6 +118,54 @@ agenda-user-demand-schedule-poc/
 - **Persistence**: Jobs are stored in MongoDB and survive application restarts.
 - **User Isolation**: Endpoints manage jobs based on a `username` attribute.
 
+## System Architecture
+
+The following diagram illustrates the distributed nature of the POC, showing how multiple replicas interact with a shared MongoDB Replica Set and the host's Docker Engine.
+
+```mermaid
+graph TD
+    subgraph "Browser / Client"
+        UI[Dashboard UI]
+        Logs[Live Log Viewer]
+    end
+
+    subgraph "Docker Stack (agenda-poc)"
+        direction TB
+        subgraph "App Replicas (Node.js)"
+            A1[Replica 1: Express + Agenda]
+            A2[Replica 2: Express + Agenda]
+        end
+
+        subgraph "Database Layer"
+            M1[(MongoDB RS0)]
+        end
+    end
+
+    subgraph "Host System"
+        DE[Docker Engine / Socket]
+    end
+
+    %% Interactions
+    UI -- "HTTP/REST (JSON)" --> A1
+    UI -- "HTTP/REST (JSON)" --> A2
+    
+    A1 -- "Mongo Wire Protocol" --> M1
+    A2 -- "Mongo Wire Protocol" --> M1
+    M1 -- "Change Streams (Oplog)" --> A1
+    M1 -- "Change Streams (Oplog)" --> A2
+
+    Logs -- "SSE (Server-Sent Events)" --> A1
+    A1 -- "Docker API (Unix/Pipe)" --> DE
+```
+
+### Protocol Breakdown
+
+1.  **HTTP/REST (JSON)**: Used by the Dashboard and external clients to create, list, and delete jobs.
+2.  **MongoDB Wire Protocol**: Standard communication between the Node.js instances and the MongoDB cluster.
+3.  **MongoDB Change Streams (Oplog)**: **Critical for POC.** When a job is added to MongoDB, the Change Stream notifies all active Agenda replicas instantly. This replaces polling and ensures real-time job execution.
+4.  **Server-Sent Events (SSE)**: Used for the **Live Log Streamer**. It provides a lightweight, unidirectional stream from the backend to the browser to push real-time logs without the overhead of WebSockets.
+5.  **Docker Engine API**: The backend communicates with the host's `/var/run/docker.sock` (or `//./pipe/docker_engine` on Windows) to fetch and multiplex logs from all containers in the stack.
+
 ## Live Distributed Logging (Demo Feature)
 
 This project includes a built-in **Live Log Streamer** that allows you to see real-time logs from all running API replicas directly in your browser.
