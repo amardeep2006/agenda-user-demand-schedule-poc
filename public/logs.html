@@ -1,0 +1,259 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Live Docker Stream | Agenda POC</title>
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg: #05070a;
+            --surface: #0d1117;
+            --border: #30363d;
+            --text: #c9d1d9;
+            --timestamp: #8b949e;
+            --id-bg: rgba(88, 166, 255, 0.1);
+            --id-text: #58a6ff;
+            --msg: #f0f6fc;
+            --accent: #238636;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            background-color: var(--bg);
+            color: var(--text);
+            font-family: 'JetBrains Mono', monospace;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        header {
+            padding: 1rem 1.5rem;
+            background: var(--surface);
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            backdrop-filter: blur(10px);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        .controls {
+            display: flex;
+            align-items: center;
+            gap: 1.5rem;
+        }
+
+        #filter-container {
+            background: var(--bg);
+            border: 1px solid var(--border);
+            color: var(--text);
+            padding: 0.4rem 0.8rem;
+            border-radius: 6px;
+            font-family: inherit;
+            font-size: 0.75rem;
+            outline: none;
+            cursor: pointer;
+        }
+
+        .status {
+            display: flex;
+            align-items: center;
+            gap: 0.6rem;
+            font-size: 0.7rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        .dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background: #484f58;
+        }
+
+        .dot.active {
+            background: var(--accent);
+            box-shadow: 0 0 12px var(--accent);
+            animation: pulse 2s infinite;
+        }
+
+        #log-container {
+            flex: 1;
+            padding: 1.5rem;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 0.4rem;
+            font-size: 0.8rem;
+            background-image: radial-gradient(circle at 50% 50%, rgba(255,255,255,0.02) 1px, transparent 1px);
+            background-size: 30px 30px;
+        }
+
+        .log-entry {
+            display: flex;
+            gap: 1.25rem;
+            padding: 0.35rem 0.75rem;
+            border-radius: 6px;
+            transition: all 0.1s;
+            border: 1px solid transparent;
+        }
+
+        .log-entry:hover {
+            background: rgba(255, 255, 255, 0.04);
+            border-color: var(--border);
+        }
+
+        .ts { 
+            color: var(--timestamp); 
+            min-width: 130px; 
+            font-size: 0.75rem;
+        }
+        
+        .cid { 
+            color: var(--id-text); 
+            background: var(--id-bg);
+            font-weight: 700; 
+            padding: 0.1rem 0.5rem;
+            border-radius: 4px;
+            font-size: 0.7rem;
+            min-width: 120px;
+            text-align: center;
+            height: fit-content;
+        }
+        
+        .m { 
+            color: var(--msg); 
+            white-space: pre-wrap; 
+            word-break: break-all;
+            flex: 1;
+        }
+
+        @keyframes pulse {
+            0% { transform: scale(1); opacity: 1; }
+            50% { transform: scale(1.2); opacity: 0.7; }
+            100% { transform: scale(1); opacity: 1; }
+        }
+
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar { width: 10px; }
+        ::-webkit-scrollbar-track { background: var(--bg); }
+        ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 10px; border: 2px solid var(--bg); }
+        ::-webkit-scrollbar-thumb:hover { background: #484f58; }
+    </style>
+</head>
+<body>
+    <header>
+        <div>
+            <span style="color: var(--accent); font-weight: 800; border: 1px solid var(--accent); padding: 2px 6px; border-radius: 4px; margin-right: 10px; font-size: 0.7rem;">LIVE</span>
+            <strong style="letter-spacing: -0.02em;">DOCKER_ENGINE_HOOK</strong>
+        </div>
+        <div class="controls">
+            <select id="filter-container">
+                <option value="all">All Replicas</option>
+            </select>
+            <div class="status">
+                <div id="status-dot" class="dot"></div>
+                <span id="status-text" style="color: var(--timestamp)">Connecting...</span>
+            </div>
+        </div>
+    </header>
+
+    <div id="log-container">
+        <!-- New logs will be prepended here -->
+    </div>
+
+    <script>
+        const container = document.getElementById('log-container');
+        const dot = document.getElementById('status-dot');
+        const statusText = document.getElementById('status-text');
+        const filterSelect = document.getElementById('filter-container');
+        const knownContainers = new Set();
+
+        function appendLog(log) {
+            // Update filter dropdown if new container discovered
+            if (!knownContainers.has(log.containerId)) {
+                knownContainers.add(log.containerId);
+                const opt = document.createElement('option');
+                opt.value = log.containerId;
+                opt.textContent = log.containerId;
+                filterSelect.appendChild(opt);
+            }
+
+            // Create log entry
+            const div = document.createElement('div');
+            div.className = 'log-entry';
+            div.dataset.container = log.containerId;
+            
+            // Apply filter visibility
+            const currentFilter = filterSelect.value;
+            if (currentFilter !== 'all' && currentFilter !== log.containerId) {
+                div.style.display = 'none';
+            }
+            
+            const ts = new Date(log.timestamp).toLocaleTimeString([], { hour12: false, fractionalSecondDigits: 3 });
+            
+            let message = log.message
+                .replace(/STARTING/g, '<span style="color: #e3b341">STARTING</span>')
+                .replace(/COMPLETED/g, '<span style="color: #238636">COMPLETED</span>')
+                .replace(/error|fail|exception/gi, '<span style="color: #f85149">$&</span>');
+
+            div.innerHTML = `
+                <span class="ts">${ts}</span>
+                <span class="cid">${log.containerId}</span>
+                <span class="m">${message}</span>
+            `;
+            
+            // PREPEND new log to the top
+            container.insertBefore(div, container.firstChild);
+            
+            // Performance: Prune old logs
+            if (container.childNodes.length > 500) {
+                container.removeChild(container.lastChild);
+            }
+        }
+
+        filterSelect.addEventListener('change', () => {
+            const filter = filterSelect.value;
+            const entries = container.querySelectorAll('.log-entry');
+            entries.forEach(entry => {
+                if (filter === 'all' || entry.dataset.container === filter) {
+                    entry.style.display = 'flex';
+                } else {
+                    entry.style.display = 'none';
+                }
+            });
+        });
+
+        function connect() {
+            const evtSource = new EventSource("/stream-logs");
+
+            evtSource.onopen = () => {
+                dot.classList.add('active');
+                statusText.textContent = 'Socket Connected';
+                statusText.style.color = '#238636';
+            };
+
+            evtSource.onmessage = (event) => {
+                try {
+                    const log = JSON.parse(event.data);
+                    appendLog(log);
+                } catch(e) {}
+            };
+
+            evtSource.onerror = () => {
+                dot.classList.remove('active');
+                statusText.textContent = 'Socket Retrying...';
+                statusText.style.color = '#f43f5e';
+            };
+        }
+
+        connect();
+    </script>
+</body>
+</html>

@@ -25,9 +25,11 @@
   },
   "dependencies": {
     "@agendajs/mongo-backend": "^4.0.1",
+    "@types/dockerode": "^4.0.1",
     "@types/uuid": "^10.0.0",
     "agenda": "^6.2.4",
     "agendash": "^8.2.2",
+    "dockerode": "^5.0.0",
     "express": "^5.2.1",
     "swagger-ui-express": "^5.0.1",
     "uuid": "^14.0.0"

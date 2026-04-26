@@ -117,3 +117,18 @@ agenda-user-demand-schedule-poc/
 - **Dynamic Scheduling**: Allows creating jobs on-the-fly with human-readable intervals.
 - **Persistence**: Jobs are stored in MongoDB and survive application restarts.
 - **User Isolation**: Endpoints manage jobs based on a `username` attribute.
+
+## Live Distributed Logging (Demo Feature)
+
+This project includes a built-in **Live Log Streamer** that allows you to see real-time logs from all running API replicas directly in your browser.
+
+- **URL**: [http://localhost:3000/logs.html](http://localhost:3000/logs.html)
+
+> [!CAUTION]
+> ### Security Warning
+> To enable this feature, the application mounts the **Docker Socket** (`/var/run/docker.sock`). 
+> - **Risk**: This gives the container full control over the Docker host.
+> - **Demo Purpose Only**: This was added strictly for "fun" and to easily demonstrate job distribution across multiple containers in a single view.
+> - **Production**: **NEVER** mount the Docker socket in a production environment without proper security layers. 
+
+To use this feature, ensure you run the full stack via `docker compose` so the socket can be mounted correctly.
