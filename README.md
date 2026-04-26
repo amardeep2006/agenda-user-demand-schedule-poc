@@ -65,10 +65,14 @@ The project includes an interactive Swagger UI to explore and test the API. Once
 - **DELETE `/jobs`**: Remove all jobs associated with a specific username.
   - Query Param: `?username=John`
 
-### Monitoring
+### Management & Monitoring
 
+- **Web UI**: A simple, modern interface to create, list, and delete jobs.
+  - URL: [http://localhost:3000](http://localhost:3000)
 - **Agendash**: A real-time dashboard to monitor and manage Agenda jobs.
   - URL: [http://localhost:3000/dash](http://localhost:3000/dash)
+- **Swagger API Docs**: Interactive API documentation for manual testing.
+  - URL: [http://localhost:3000/api-docs](http://localhost:3000/api-docs)
 
 ## Project Structure
 

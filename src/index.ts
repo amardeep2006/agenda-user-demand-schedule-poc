@@ -11,6 +11,7 @@ const mongoConnectionString = 'mongodb://127.0.0.1:27017/agenda-test?replicaSet=
 
 const app = express();
 app.use(express.json());
+app.use(express.static('public'));
 
 // Swagger OpenAPI documentation route
 app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerDocument));
