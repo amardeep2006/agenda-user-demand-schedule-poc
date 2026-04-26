@@ -1,5 +1,8 @@
 # Agenda User Demand Schedule POC
 
+> [!CAUTION]
+> **DISCLAIMER**: This project is heavily "vibe coded" and may contain bugs. It is strictly a **Proof of Concept (POC)** and is **NOT production-ready**. Use it only for demonstration or educational purposes.
+
 This project is a Proof of Concept (POC) demonstrating how to schedule and manage user-specific tasks dynamically using an Express-based API and [Agenda.js](https://github.com/agenda/agenda). It leverages MongoDB Change Streams (via a replica set) for real-time job notifications, moving away from polling-based execution to an event-driven approach.
 
 ## Prerequisites
