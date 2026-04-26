@@ -11,6 +11,8 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
+    volumes:
+      - mongodb_data:/data/db
 
   mongo-init:
     image: mongo:8
@@ -36,3 +38,6 @@ services:
       - "3000-3001:3000"
     deploy:
       replicas: 2
+
+volumes:
+  mongodb_data:
