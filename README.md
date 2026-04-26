@@ -102,7 +102,10 @@ The project includes an interactive Swagger UI to explore and test the API. Once
 ```text
 agenda-user-demand-schedule-poc/
 ├── src/
-│   ├── index.ts        # Main Express application & Agenda setup
+│   ├── config/         # Centralized configuration (Mongo URI, Port)
+│   ├── jobs/           # Agenda job definitions & registration
+│   ├── routes/         # Express API route modules
+│   ├── index.ts        # Application bootstrap entry point
 │   └── swagger.ts      # Swagger/OpenAPI documentation definitions
 ├── Dockerfile          # Node 24 based container definition
 ├── docker-compose.yaml # Full stack: MongoDB RS + 2x App Replicas
