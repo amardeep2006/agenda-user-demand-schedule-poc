@@ -23,6 +23,7 @@
   "dependencies": {
     "@agendajs/mongo-backend": "^4.0.1",
     "agenda": "^6.2.4",
+    "agendash": "^8.2.2",
     "express": "^5.2.1",
     "swagger-ui-express": "^5.0.1"
   }

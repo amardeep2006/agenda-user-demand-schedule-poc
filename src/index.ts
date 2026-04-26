@@ -5,6 +5,7 @@ import { MongoClient } from 'mongodb';
 import express from 'express';
 import swaggerUi from 'swagger-ui-express';
 import { swaggerDocument } from './swagger';
+import { createExpressMiddleware } from 'agendash';
 
 const mongoConnectionString = 'mongodb://127.0.0.1:27017/agenda-test?replicaSet=rs0&directConnection=true';
 
@@ -47,6 +48,9 @@ app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerDocument));
 
   await agenda.start();
   console.log('Agenda started!');
+
+  // Mount Agendash
+  app.use('/dash', createExpressMiddleware(agenda));
 
   // Endpoint to create jobs on the fly
   app.post('/jobs', async (req, res) => {
@@ -132,6 +136,7 @@ app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerDocument));
   app.listen(PORT, () => {
     console.log(`Express server running on http://localhost:${PORT}`);
     console.log(`Swagger docs available at http://localhost:${PORT}/api-docs`);
+    console.log(`Agendash available at http://localhost:${PORT}/dash`);
   });
 
 })();
