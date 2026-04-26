@@ -46,7 +46,23 @@
         .controls {
             display: flex;
             align-items: center;
-            gap: 1.5rem;
+            gap: 1rem;
+        }
+
+        #keyword-filter {
+            background: var(--bg);
+            border: 1px solid var(--border);
+            color: var(--text);
+            padding: 0.4rem 0.8rem;
+            border-radius: 6px;
+            font-family: inherit;
+            font-size: 0.75rem;
+            outline: none;
+            width: 180px;
+        }
+
+        #keyword-filter:focus {
+            border-color: var(--id-text);
         }
 
         #filter-container {
@@ -59,6 +75,31 @@
             font-size: 0.75rem;
             outline: none;
             cursor: pointer;
+        }
+
+        .btn {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            color: var(--text);
+            padding: 0.4rem 0.8rem;
+            border-radius: 6px;
+            font-family: inherit;
+            font-size: 0.75rem;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .btn:hover {
+            background: var(--border);
+        }
+
+        .btn.active {
+            background: #f43f5e;
+            border-color: #f43f5e;
+            color: white;
         }
 
         .status {
@@ -154,9 +195,14 @@
             <strong style="letter-spacing: -0.02em;">DOCKER_ENGINE_HOOK</strong>
         </div>
         <div class="controls">
+            <input type="text" id="keyword-filter" placeholder="Filter by keyword...">
             <select id="filter-container">
                 <option value="all">All Replicas</option>
             </select>
+            <button id="pause-btn" class="btn">
+                <span id="pause-icon">⏸</span>
+                <span id="pause-text">Pause</span>
+            </button>
             <div class="status">
                 <div id="status-dot" class="dot"></div>
                 <span id="status-text" style="color: var(--timestamp)">Connecting...</span>
@@ -173,7 +219,23 @@
         const dot = document.getElementById('status-dot');
         const statusText = document.getElementById('status-text');
         const filterSelect = document.getElementById('filter-container');
+        const keywordFilter = document.getElementById('keyword-filter');
+        const pauseBtn = document.getElementById('pause-btn');
+        const pauseIcon = document.getElementById('pause-icon');
+        const pauseText = document.getElementById('pause-text');
+        
         const knownContainers = new Set();
+        let isPaused = false;
+
+        function shouldShowLog(containerId, message) {
+            const currentContainerFilter = filterSelect.value;
+            const currentKeyword = keywordFilter.value.toLowerCase();
+            
+            const containerMatch = currentContainerFilter === 'all' || currentContainerFilter === containerId;
+            const keywordMatch = !currentKeyword || message.toLowerCase().includes(currentKeyword);
+            
+            return containerMatch && keywordMatch;
+        }
 
         function appendLog(log) {
             // Update filter dropdown if new container discovered
@@ -185,14 +247,16 @@
                 filterSelect.appendChild(opt);
             }
 
+            if (isPaused) return;
+
             // Create log entry
             const div = document.createElement('div');
             div.className = 'log-entry';
             div.dataset.container = log.containerId;
+            div.dataset.message = log.message; // Store raw message for filtering
             
             // Apply filter visibility
-            const currentFilter = filterSelect.value;
-            if (currentFilter !== 'all' && currentFilter !== log.containerId) {
+            if (!shouldShowLog(log.containerId, log.message)) {
                 div.style.display = 'none';
             }
             
@@ -218,16 +282,38 @@
             }
         }
 
-        filterSelect.addEventListener('change', () => {
-            const filter = filterSelect.value;
+        function updateFilters() {
             const entries = container.querySelectorAll('.log-entry');
             entries.forEach(entry => {
-                if (filter === 'all' || entry.dataset.container === filter) {
+                const containerId = entry.dataset.container;
+                const message = entry.dataset.message || '';
+                
+                if (shouldShowLog(containerId, message)) {
                     entry.style.display = 'flex';
                 } else {
                     entry.style.display = 'none';
                 }
             });
+        }
+
+        filterSelect.addEventListener('change', updateFilters);
+        keywordFilter.addEventListener('input', updateFilters);
+
+        pauseBtn.addEventListener('click', () => {
+            isPaused = !isPaused;
+            if (isPaused) {
+                pauseBtn.classList.add('active');
+                pauseIcon.textContent = '▶';
+                pauseText.textContent = 'Resume';
+                statusText.textContent = 'Stream Paused';
+                statusText.style.color = '#f43f5e';
+            } else {
+                pauseBtn.classList.remove('active');
+                pauseIcon.textContent = '⏸';
+                pauseText.textContent = 'Pause';
+                statusText.textContent = 'Socket Connected';
+                statusText.style.color = '#238636';
+            }
         });
 
         function connect() {
