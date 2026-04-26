@@ -8,50 +8,60 @@ This project is a Proof of Concept (POC) demonstrating how to schedule and manag
 ## Prerequisites
 
 Ensure you have the following installed on your machine:
-- [Node.js](https://nodejs.org/) (v16 or higher recommended)
+- [Node.js](https://nodejs.org/) (v24 or higher recommended)
 - [npm](https://www.npmjs.com/) (usually comes with Node.js)
 - [Docker](https://www.docker.com/) and [Docker Compose](https://docs.docker.com/compose/)
 
-## Setting up MongoDB (Replica Set)
+## Running with Docker Compose (Recommended)
 
-Agenda requires a MongoDB Replica Set to utilize the `MongoChangeStreamNotificationChannel` for real-time, event-driven job execution.
+This project is configured to run with 2 replicas of the application service and a MongoDB replica set using Docker Compose.
 
-1. Ensure your Docker daemon is running.
-2. Start the MongoDB replica set using the provided `docker-compose.yaml` file:
+1. **Build and start the services:**
 
-```bash
-docker compose up -d
-```
+   ```bash
+   docker compose up --build -d
+   ```
 
-This command starts a MongoDB instance and automatically initializes the replica set `rs0`. 
+2. **Access the application:**
+   - Since we are running 2 replicas, Docker Compose maps them to a port range `3000-3001`.
+   - **Replica 1**: [http://localhost:3000](http://localhost:3000)
+   - **Replica 2**: [http://localhost:3001](http://localhost:3001)
 
-The MongoDB connection string used by the application is:
-```text
-mongodb://localhost:27017/?replicaSet=rs0&directConnection=true
-```
+3. **Check status:**
 
-To stop the database later, you can run:
-```bash
-docker compose down
-```
+   ```bash
+   docker compose ps
+   ```
 
-## Running the Application
+4. **View logs:**
 
-Once the MongoDB container is up and healthy, you can start the Node application.
+   ```bash
+   docker compose logs -f agenda-poc
+   ```
 
-1. **Install dependencies:**
+## Running Locally (Development)
 
-```bash
-npm install
-```
+If you prefer to run the application on your host machine while using Docker for MongoDB:
 
-2. **Run the development server:**
+1. **Start only MongoDB:**
 
-```bash
-npm run dev
-```
+   ```bash
+   docker compose up mongodb mongo-init -d
+   ```
 
-This will execute the application using `ts-node` (via the `dev` script in `package.json`).
+2. **Install dependencies:**
+
+   ```bash
+   npm install
+   ```
+
+3. **Run the development server:**
+
+   ```bash
+   npm run dev
+   ```
+
+The application will automatically connect to `mongodb://127.0.0.1:27017` by default.
 
 ## API Documentation
 
@@ -70,32 +80,30 @@ The project includes an interactive Swagger UI to explore and test the API. Once
 
 ### Management & Monitoring
 
-- **Web UI**: A simple, modern interface to create, list, and delete jobs.
+- **Web UI**: A simple interface to manage jobs.
   - URL: [http://localhost:3000](http://localhost:3000)
-- **Agendash**: A real-time dashboard to monitor and manage Agenda jobs.
+- **Agendash**: Real-time dashboard to monitor jobs.
   - URL: [http://localhost:3000/dash](http://localhost:3000/dash)
-- **Swagger API Docs**: Interactive API documentation for manual testing.
+- **Swagger API Docs**: Interactive API documentation.
   - URL: [http://localhost:3000/api-docs](http://localhost:3000/api-docs)
 
 ## Project Structure
 
 ```text
 agenda-user-demand-schedule-poc/
-├── public/
-│   └── index.html      # Web UI for job management
 ├── src/
 │   ├── index.ts        # Main Express application & Agenda setup
 │   └── swagger.ts      # Swagger/OpenAPI documentation definitions
-├── docker-compose.yaml # MongoDB Replica Set configuration
+├── Dockerfile          # Node 24 based container definition
+├── docker-compose.yaml # Full stack: MongoDB RS + 2x App Replicas
 ├── package.json        # Dependencies and scripts
 └── tsconfig.json       # TypeScript configuration
 ```
 
 ## Key Features
 
+- **Scalability**: Runs with multiple replicas to demonstrate distributed task processing.
 - **Real-time Notifications**: Uses `MongoChangeStreamNotificationChannel` to respond to job events immediately using MongoDB Change Streams.
-- **Dynamic Scheduling**: Allows creating jobs on-the-fly with human-readable intervals (e.g., "5 minutes", "every Monday at 9am").
-- **Custom Web UI**: A bespoke, premium-designed interface for end-users to manage their own jobs.
-- **Agendash Dashboard**: Integrated web-based dashboard for real-time monitoring and manual management of scheduled jobs.
+- **Dynamic Scheduling**: Allows creating jobs on-the-fly with human-readable intervals.
 - **Persistence**: Jobs are stored in MongoDB and survive application restarts.
-- **User Isolation**: Endpoints are designed to manage jobs based on a `username` attribute stored in the job data.
+- **User Isolation**: Endpoints manage jobs based on a `username` attribute.
