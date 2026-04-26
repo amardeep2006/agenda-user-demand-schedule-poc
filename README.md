@@ -78,6 +78,8 @@ The project includes an interactive Swagger UI to explore and test the API. Once
 
 ```text
 agenda-user-demand-schedule-poc/
+├── public/
+│   └── index.html      # Web UI for job management
 ├── src/
 │   ├── index.ts        # Main Express application & Agenda setup
 │   └── swagger.ts      # Swagger/OpenAPI documentation definitions
@@ -90,6 +92,7 @@ agenda-user-demand-schedule-poc/
 
 - **Real-time Notifications**: Uses `MongoChangeStreamNotificationChannel` to respond to job events immediately using MongoDB Change Streams.
 - **Dynamic Scheduling**: Allows creating jobs on-the-fly with human-readable intervals (e.g., "5 minutes", "every Monday at 9am").
+- **Custom Web UI**: A bespoke, premium-designed interface for end-users to manage their own jobs.
 - **Agendash Dashboard**: Integrated web-based dashboard for real-time monitoring and manual management of scheduled jobs.
 - **Persistence**: Jobs are stored in MongoDB and survive application restarts.
 - **User Isolation**: Endpoints are designed to manage jobs based on a `username` attribute stored in the job data.

@@ -64,7 +64,7 @@ export const swaggerDocument = {
                       },
                       schedule: {
                         type: "string",
-                        example: "5 seconds"
+                        example: "5 minutes"
                       }
                     }
                   }
@@ -114,8 +114,8 @@ export const swaggerDocument = {
                   },
                   schedule: {
                     type: "string",
-                    description: "The interval or specific time to run the job (e.g., '5 seconds', 'in 10 minutes', 'every day at 8am').",
-                    example: "5 seconds"
+                    description: "The interval or specific time to run the job (e.g., '5 minutes', 'in 10 minutes', 'Monday at 8am').",
+                    example: "5 minutes"
                   }
                 }
               }
@@ -140,7 +140,7 @@ export const swaggerDocument = {
                     },
                     schedule: {
                       type: "string",
-                      example: "5 seconds"
+                      example: "5 minutes"
                     }
                   }
                 }
