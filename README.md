@@ -12,11 +12,21 @@ Ensure you have the following installed on your machine:
 - [npm](https://www.npmjs.com/) (usually comes with Node.js)
 - [Docker](https://www.docker.com/) and [Docker Compose](https://docs.docker.com/compose/)
 
-## Running with Docker Compose (Recommended)
+## Development: Database Only Mode
+
+If you are developing the API locally on your host machine but want the MongoDB Replica Set to run in Docker:
+
+```bash
+docker compose up mongodb mongo-init -d
+```
+
+This will start the database and the initialization script, but **not** the 2 API replicas.
+
+## Running the Full Stack (Recommended)
 
 This project is configured to run with 2 replicas of the application service and a MongoDB replica set using Docker Compose.
 
-1. **Build and start the services:**
+1. **Build and start all services:**
 
    ```bash
    docker compose up --build -d

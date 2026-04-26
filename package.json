@@ -7,7 +7,10 @@
     "dev": "ts-node src/index.ts",
     "build": "tsc",
     "start": "node dist/index.js",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "docker:db": "docker compose up mongodb mongo-init -d",
+    "docker:up": "docker compose up --build -d",
+    "docker:down": "docker compose down"
   },
   "keywords": [],
   "author": "",
